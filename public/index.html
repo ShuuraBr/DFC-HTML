@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro Pro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="loader" class="loader-overlay hidden">
+        <div class="spinner"></div>
+        <p>Processando dados...</p>
+    </div>
+
+    <div id="view-login" class="view-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <h2>Acesso Corporativo</h2>
+                <p>Demonstrativo de Fluxo de Caixa</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-wrapper">
+                    <label>E-mail</label>
+                    <input type="email" id="email" placeholder="usuario@empresa.com" required>
+                </div>
+                <div class="input-wrapper">
+                    <label>Senha</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sessão</button>
+                <p id="msg-error" class="error-text"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="view-app" class="view-container hidden">
+        
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-target="dashboard">
+                    <i class="fa-solid fa-house"></i>
+                    <span class="tooltip">Visão Geral</span>
+                </button>
+                <button class="nav-btn" data-target="reports">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span class="tooltip">Relatórios</span>
+                </button>
+                <button class="nav-btn restricted" data-target="settings">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="tooltip">Configurações</span>
+                </button>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="user-avatar">U</div>
+            </div>
+            <button id="btn-logout" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </aside>
+
+        <main class="main-content">
+            
+            <section id="page-dashboard" class="page-section active">
+                <header class="top-bar">
+                    <div class="titles">
+                        <h1>Fluxo de Caixa</h1>
+                        <p>Bem-vindo, <span id="user-name">Utilizador</span>.</p>
+                    </div>
+                    
+                    <div class="actions">
+                        <img src="assets\Logotipo-cores-institucionais-vetorizada.jpg" 
+                             alt="Logotipo Institucional" 
+                             class="header-logo"
+                             onerror="this.style.display='none'"> 
+                    </div>
+                </header>
+
+                <div class="kpi-grid" id="kpi-container">
+                    </div>
+
+                <div class="dashboard-split">
+                    
+                    <div class="panel table-panel">
+                        <div class="panel-head">
+                            <h3><i class="fa-solid fa-table"></i> DFC Gerencial Detalhado</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="finance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Conta / Descrição</th>
+                                        <th>Jan</th>
+                                        <th>Fev</th>
+                                        <th>Mar</th>
+                                        <th>Abr</th>
+                                        <th>Mai</th>
+                                        <th>Jun</th>
+                                        <th>Jul</th>
+                                        <th>Ago</th>
+                                        <th>Set</th>
+                                        <th>Out</th>
+                                        <th>Nov</th>
+                                        <th>Dez</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="panel chart-panel">
+                        <div class="panel-head">
+                            <h3><i class="fa-solid fa-chart-area"></i> Evolução Anual</h3>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="page-reports" class="page-section">
+                <header class="top-bar"><h1>Relatórios</h1></header>
+                <div class="empty-state">
+                    <i class="fa-solid fa-print"></i>
+                    <h3>Central de Exportação</h3>
+                    <p>Selecione os filtros para gerar o PDF.</p>
+                </div>
+            </section>
+
+            <section id="page-settings" class="page-section">
+                <header class="top-bar"><h1>Administração</h1></header>
+                <div class="panel" style="padding: 20px;">
+                    <h3>Gestão de Acessos e Usuários</h3>
+                    <p>Área restrita para administradores.</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
