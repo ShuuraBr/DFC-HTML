@@ -1,5 +1,5 @@
 // ARQUIVO: server.js
-require('dotenv').config(); // Carrega o .env primeiro
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { getConnection, sql } = require('./db');
@@ -10,93 +10,203 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- ROTA LOGIN ---
+const SENHA_PADRAO = 'Obj@2026'; 
+
+// --- ROTAS DE LOGIN, CADASTRO, DEPARTAMENTOS (SEM ALTERAÇÕES) ---
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const pool = await getConnection();
-        
-        // Verifica na tabela Usuarios
-        const result = await pool.request()
-            .input('email', sql.VarChar, email)
-            .input('senha', sql.VarChar, password)
-            .query(`SELECT Email, Role FROM Usuarios WHERE Email = @email AND Senha = @senha`);
-
-        if (result.recordset.length > 0) {
-            res.json({ success: true, user: result.recordset[0] });
-        } else {
-            res.status(401).json({ success: false, message: 'Usuário ou senha inválidos.' });
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Erro ao conectar no banco.' });
-    }
+        const r = await pool.request()
+            .input('email', sql.VarChar, email).input('senha', sql.VarChar, password)
+            .query(`SELECT U.Email, U.Nome, U.Role, U.Senha_prov, D.Nome_dep as Departamento 
+                    FROM Usuarios U LEFT JOIN Departamentos D ON U.Pk_dep = D.Id_dep 
+                    WHERE U.Email = @email AND U.Senha = @senha`);
+        if(r.recordset.length > 0) {
+            const u = r.recordset[0];
+            res.json({ success: true, user: { ...u, Nome: u.Nome||'Usuário', Role: u.Role||'user' } });
+        } else { res.status(401).json({ success: false, message: 'Inválido' }); }
+    } catch(e) { res.status(500).json({success:false}); }
 });
 
-// --- ROTA DASHBOARD (12 MESES) ---
+app.post('/api/usuarios', async (req, res) => {
+    const { nome, email, departamentoId, role } = req.body;
+    try {
+        const pool = await getConnection();
+        const check = await pool.request().input('e', sql.VarChar, email).query('SELECT Email FROM Usuarios WHERE Email=@e');
+        if(check.recordset.length>0) return res.status(400).json({success:false, message:'Email já existe'});
+        await pool.request().input('n',sql.VarChar,nome).input('e',sql.VarChar,email).input('d',sql.Int,departamentoId).input('r',sql.VarChar,role).input('s',sql.VarChar,SENHA_PADRAO)
+            .query(`INSERT INTO Usuarios (ID, Nome, Email, Senha, Senha_prov, Pk_dep, Role) VALUES ((SELECT ISNULL(MAX(ID),0)+1 FROM Usuarios), @n, @e, @s, @s, @d, @r)`);
+        res.json({success:true, message:'Criado com sucesso'});
+    } catch(e){ res.status(500).json({success:false}); }
+});
+
+app.post('/api/definir-senha', async (req, res) => {
+    const { email, novaSenha } = req.body;
+    try {
+        const pool = await getConnection();
+        await pool.request().input('e',sql.VarChar,email).input('s',sql.VarChar,novaSenha).query('UPDATE Usuarios SET Senha=@s, Senha_prov=NULL WHERE Email=@e');
+        res.json({success:true});
+    } catch(e){ res.status(500).json({success:false}); }
+});
+
+app.get('/api/departamentos', async (req, res) => {
+    try {
+        const pool = await getConnection();
+        const r = await pool.request().query('SELECT Id_dep, Nome_dep FROM Departamentos');
+        res.json(r.recordset);
+    } catch(e){ res.status(500).json({error:'Erro'}); }
+});
+
+
+// --- ROTA DASHBOARD (LÓGICA ALTERADA AQUI) ---
 app.get('/api/dashboard', async (req, res) => {
     try {
         const pool = await getConnection();
         
-        // Busca todas as linhas da tabela FluxoCaixa
-        const result = await pool.request().query('SELECT * FROM FluxoCaixa');
+        // Buscamos as colunas necessárias.
+        // IMPORTANTE: Assumindo que a coluna numérica do mês se chama "Mes".
+        // Se no seu banco for "Month", "Numero_Mes" ou outro nome, altere no SELECT abaixo.
+        const result = await pool.request().query('SELECT Origem_DFC, Plano_Financeiro, Mes, Saida_ajustado FROM DFC_Analitica');
         const rawData = result.recordset;
 
-        let totalEntrada = 0;
-        let totalSaida = 0;
-        let saldoInicial = 5000000; // Pode vir do banco futuramente
+        // 1. Mapa de Categorias Pai
+        const categoriasMap = {
+            '01-Entradas Operacionais': '01- Entradas Operacionais',
+            '02- Saidas operacionais': '02- Saídas Operacionais',
+            '03- Operações Financeiras': '03- Operações Financeiras',
+            '04 - Ativo Imobilizado': '04- Ativo Imobilizado',
+            '06- Movimentações de Socios': '06- Movimentações de Sócios',
+            '07- Caixas da loja': '07- Caixas da Loja'
+        };
 
-        // Processa cada linha e soma os 12 meses
-        const tabelaProcessada = rawData.map(row => {
-            // Garante que valores nulos virem zero
-            const r = {
-                conta: row.Conta,
-                jan: row.Jan || 0, fev: row.Fev || 0, mar: row.Mar || 0,
-                abr: row.Abr || 0, mai: row.Mai || 0, jun: row.Jun || 0,
-                jul: row.Jul || 0, ago: row.Ago || 0, set: row.Set || 0,
-                out: row.Out || 0, nov: row.Nov || 0, dez: row.Dez || 0
+        // 2. Mapa de Número do Mês para Chave do JSON
+        const mapaMeses = {
+            1: 'jan', 2: 'fev', 3: 'mar', 4: 'abr', 5: 'mai', 6: 'jun',
+            7: 'jul', 8: 'ago', 9: 'set', 10: 'out', 11: 'nov', 12: 'dez'
+        };
+
+        const zerarMeses = () => ({ jan:0, fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0 });
+
+        // Estrutura principal
+        let grupos = {};
+        
+        // Inicializa os grupos
+        Object.keys(categoriasMap).forEach(k => {
+            grupos[k] = { 
+                titulo: categoriasMap[k], 
+                total: zerarMeses(), 
+                filhosMap: {} // Usamos um Map interno para agrupar Planos Financeiros repetidos
             };
-
-            // Soma total daquela conta no ano
-            const totalLinha = r.jan + r.fev + r.mar + r.abr + r.mai + r.jun + 
-                               r.jul + r.ago + r.set + r.out + r.nov + r.dez;
-
-            // Classifica se é Saída ou Entrada
-            const nome = row.Conta.toLowerCase();
-            const isSaida = nome.includes('saída') || nome.includes('despesa') || nome.includes('custo') || totalLinha < 0;
-
-            if (isSaida) {
-                totalSaida += totalLinha;
-            } else if (!nome.includes('saldo')) {
-                totalEntrada += totalLinha;
-            }
-
-            return r;
         });
 
-        const resultadoLiquido = totalEntrada + totalSaida;
+        // 3. PROCESSAMENTO (A Lógica que você pediu)
+        rawData.forEach(row => {
+            const catBanco = row.Origem_DFC ? row.Origem_DFC.trim() : null;
+            const planoFin = row.Plano_Financeiro || 'Sem Descrição';
+            const numMes = row.Mes; // Pega o número (1, 2, 3...)
+            const valor = row.Saida_ajustado || 0;
+
+            // Identifica a chave do mês (ex: 1 -> 'jan')
+            const chaveMes = mapaMeses[numMes];
+
+            // Se a categoria, o mês e o plano financeiro forem válidos
+            if (catBanco && grupos[catBanco] && chaveMes) {
+                const grupo = grupos[catBanco];
+
+                // A. Soma no Total do Grupo (Pai)
+                grupo.total[chaveMes] += valor;
+
+                // B. Soma no Detalhe (Filho - Plano Financeiro)
+                // Verifica se já criamos esse filho, se não, cria zerado
+                if (!grupo.filhosMap[planoFin]) {
+                    grupo.filhosMap[planoFin] = { conta: planoFin, ...zerarMeses() };
+                }
+                // Adiciona o valor no mês correspondente deste filho
+                grupo.filhosMap[planoFin][chaveMes] += valor;
+            }
+        });
+
+        // 4. Transformação para o formato do Front e Cálculos de Saldo
+        const somar = (o1, o2) => {
+            const r = zerarMeses();
+            for(let m in r) r[m] = (o1[m]||0) + (o2[m]||0);
+            return r;
+        };
+
+        // Saldo Inicial
+        const valInicial = 5000000;
+        const linhaSaldoInicial = { conta: 'Saldo Inicial', ...zerarMeses(), tipo: 'info' };
+
+        // Operacional
+        const gEntrada = grupos['01-Entradas Operacionais'];
+        const gSaida = grupos['02- Saidas operacionais'];
+        const valOperacional = somar(gEntrada.total, gSaida.total);
+        const linhaSaldoOperacional = { conta: 'Saldo Operacional', ...valOperacional, tipo: 'saldo' };
+
+        // Saldo Final
+        let valFinal = {...valOperacional};
+        ['03- Operações Financeiras','04 - Ativo Imobilizado','06- Movimentações de Socios','07- Caixas da loja'].forEach(k => {
+            if(grupos[k]) valFinal = somar(valFinal, grupos[k].total);
+        });
+        const linhaSaldoFinal = { conta: 'Saldo Final', ...valFinal, tipo: 'saldo' };
+
+        // Função para formatar o grupo para o array final
+        const formatarGrupo = (chave) => {
+            const g = grupos[chave];
+            if(!g) return null;
+            
+            // Converte o mapa de filhos de volta para array
+            const arrayFilhos = Object.values(g.filhosMap);
+
+            return {
+                conta: g.titulo,
+                ...g.total,
+                tipo: 'grupo',
+                detalhes: arrayFilhos
+            };
+        };
+
+        // Montagem da Tabela
+        const tabela = [
+            linhaSaldoInicial,
+            linhaSaldoOperacional,
+            formatarGrupo('01-Entradas Operacionais'),
+            formatarGrupo('02- Saidas operacionais'),
+            formatarGrupo('03- Operações Financeiras'),
+            formatarGrupo('04 - Ativo Imobilizado'),
+            formatarGrupo('06- Movimentações de Socios'),
+            formatarGrupo('07- Caixas da loja'),
+            linhaSaldoFinal
+        ].filter(i => i !== null);
+
+        // KPIs e Gráfico
+        const somaAno = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
+        
+        const totEntradas = somaAno(gEntrada.total);
+        const totSaidas = somaAno(gSaida.total);
+        const resFinalAno = somaAno(valFinal);
 
         res.json({
             cards: {
-                saldoInicial,
-                entrada: totalEntrada,
-                saida: totalSaida,
-                deficitSuperavit: resultadoLiquido,
-                saldoFinal: saldoInicial + resultadoLiquido
+                saldoInicial: valInicial,
+                entrada: totEntradas,
+                saida: totSaidas,
+                deficitSuperavit: resFinalAno,
+                saldoFinal: valInicial + resFinalAno
             },
             grafico: {
-                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-                // Gráfico simplificado distribuindo o resultado (ajustar conforme necessidade)
-                data: Array(12).fill(resultadoLiquido / 12) 
+                labels: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+                data: Object.values(valFinal)
             },
-            tabela: tabelaProcessada
+            tabela: tabela
         });
 
     } catch (err) {
-        console.error("Erro Dashboard:", err);
-        res.status(500).json({ error: "Erro ao ler FluxoCaixa do banco." });
+        console.error("ERRO DASHBOARD:", err);
+        res.status(500).json({ error: "Erro interno" });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando em http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Rodando em http://localhost:${PORT}`));

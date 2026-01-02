@@ -3,21 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Financeiro Pro</title>
-    
+    <title>DFC - Sistema Financeiro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <div id="loader" class="loader-overlay hidden">
-        <div class="spinner"></div>
-        <p>Processando dados...</p>
+        <div class="spinner"></div><p>Carregando...</p>
+    </div>
+
+    <div id="modal-reset" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <i class="fa-solid fa-lock" style="font-size: 40px; color: #2563eb;"></i>
+                <h2 style="margin-top: 10px;">Redefinir Senha</h2>
+                <p style="color: #6b7280; font-size: 13px;">Sua senha é provisória. Por favor, crie uma nova senha.</p>
+            </div>
+            <form id="form-reset">
+                <div class="input-wrapper">
+                    <label>Nova Senha</label>
+                    <input type="password" id="nova-senha" required minlength="4">
+                </div>
+                <div class="input-wrapper">
+                    <label>Confirmar Nova Senha</label>
+                    <input type="password" id="confirma-senha" required minlength="4">
+                </div>
+                <button type="submit" class="btn-primary">Confirmar Alteração</button>
+                <p id="msg-reset" class="error-text" style="text-align: center;"></p>
+            </form>
+        </div>
     </div>
 
     <div id="view-login" class="view-container">
@@ -25,41 +42,42 @@
             <div class="login-header">
                 <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
                 <h2>Acesso Corporativo</h2>
-                <p>Demonstrativo de Fluxo de Caixa</p>
+                <p>Fluxo de Caixa</p>
             </div>
             <form id="loginForm">
                 <div class="input-wrapper">
                     <label>E-mail</label>
-                    <input type="email" id="email" placeholder="usuario@empresa.com" required>
+                    <input type="email" id="email" required>
                 </div>
                 <div class="input-wrapper">
                     <label>Senha</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
+                    <input type="password" id="password" required>
                 </div>
-                <button type="submit" class="btn-primary">Iniciar Sessão</button>
+                <button type="submit" class="btn-primary">Entrar</button>
                 <p id="msg-error" class="error-text"></p>
             </form>
         </div>
     </div>
 
     <div id="view-app" class="view-container hidden">
-        
         <aside class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
+            <div class="brand"><i class="fa-solid fa-layer-group"></i></div>
             <nav>
                 <button class="nav-btn active" data-target="dashboard">
                     <i class="fa-solid fa-house"></i>
-                    <span class="tooltip">Visão Geral</span>
+                    <span class="tooltip">Dashboard</span>
                 </button>
                 <button class="nav-btn" data-target="reports">
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                     <span class="tooltip">Relatórios</span>
                 </button>
+                <button class="nav-btn restricted" data-target="cadastro">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span class="tooltip">Novo Usuário</span>
+                </button>
                 <button class="nav-btn restricted" data-target="settings">
                     <i class="fa-solid fa-gear"></i>
-                    <span class="tooltip">Configurações</span>
+                    <span class="tooltip">Config</span>
                 </button>
             </nav>
             <div class="user-profile">
@@ -71,87 +89,80 @@
         </aside>
 
         <main class="main-content">
-            
             <section id="page-dashboard" class="page-section active">
                 <header class="top-bar">
                     <div class="titles">
                         <h1>Fluxo de Caixa</h1>
-                        <p>Bem-vindo, <span id="user-name">Utilizador</span>.</p>
+                        <p>Bem-vindo, <span id="user-info" style="font-weight:600;">...</span></p>
                     </div>
-                    
                     <div class="actions">
-                        <img src="assets\Logotipo-cores-institucionais-vetorizada.jpg" 
-                             alt="Logotipo Institucional" 
-                             class="header-logo"
-                             onerror="this.style.display='none'"> 
+                        <img src="assets/Logotipo-cores-institucionais-vetorizada.jpg" 
+                             alt="Logotipo" class="header-logo" onerror="this.style.display='none'">
                     </div>
                 </header>
-
-                <div class="kpi-grid" id="kpi-container">
-                    </div>
-
+                <div class="kpi-grid" id="kpi-container"></div>
                 <div class="dashboard-split">
-                    
                     <div class="panel table-panel">
-                        <div class="panel-head">
-                            <h3><i class="fa-solid fa-table"></i> DFC Gerencial Detalhado</h3>
-                        </div>
+                        <div class="panel-head"><h3><i class="fa-solid fa-table"></i> Detalhamento</h3></div>
                         <div class="table-wrapper">
                             <table id="finance-table">
                                 <thead>
                                     <tr>
-                                        <th>Conta / Descrição</th>
-                                        <th>Jan</th>
-                                        <th>Fev</th>
-                                        <th>Mar</th>
-                                        <th>Abr</th>
-                                        <th>Mai</th>
-                                        <th>Jun</th>
-                                        <th>Jul</th>
-                                        <th>Ago</th>
-                                        <th>Set</th>
-                                        <th>Out</th>
-                                        <th>Nov</th>
-                                        <th>Dez</th>
+                                        <th>Plano Financeiro</th>
+                                        <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
+                                        <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    </tbody>
+                                <tbody></tbody>
                             </table>
                         </div>
                     </div>
-                    
                     <div class="panel chart-panel">
-                        <div class="panel-head">
-                            <h3><i class="fa-solid fa-chart-area"></i> Evolução Anual</h3>
-                        </div>
-                        <div class="chart-wrapper">
-                            <canvas id="mainChart"></canvas>
-                        </div>
+                        <div class="panel-head"><h3><i class="fa-solid fa-chart-area"></i> Gráfico</h3></div>
+                        <div class="chart-wrapper"><canvas id="mainChart"></canvas></div>
                     </div>
                 </div>
             </section>
 
-            <section id="page-reports" class="page-section">
-                <header class="top-bar"><h1>Relatórios</h1></header>
-                <div class="empty-state">
-                    <i class="fa-solid fa-print"></i>
-                    <h3>Central de Exportação</h3>
-                    <p>Selecione os filtros para gerar o PDF.</p>
-                </div>
-            </section>
-
-            <section id="page-settings" class="page-section">
+            <section id="page-cadastro" class="page-section">
                 <header class="top-bar"><h1>Administração</h1></header>
-                <div class="panel" style="padding: 20px;">
-                    <h3>Gestão de Acessos e Usuários</h3>
-                    <p>Área restrita para administradores.</p>
+                <div class="panel" style="max-width: 500px; margin: 20px auto; padding: 30px;">
+                    <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Usuário</h3>
+                    <p style="color: #6b7280; font-size: 13px; margin-bottom: 20px;">Senha padrão para novos usuários: <b>T2JqQDIwMjY</b>.</p>
+                    
+                    <form id="form-cadastro">
+                        <div class="input-wrapper">
+                            <label>Nome Completo</label>
+                            <input type="text" id="cad-nome" required>
+                        </div>
+                        <div class="input-wrapper">
+                            <label>E-mail Corporativo</label>
+                            <input type="email" id="cad-email" required>
+                        </div>
+                        
+                        <div class="input-wrapper">
+                            <label>Departamento</label>
+                            <select id="cad-departamento" required>
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Nível de Acesso</label>
+                            <select id="cad-role">
+                                <option value="user">Usuário Comum</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top:10px;">Salvar Usuário</button>
+                        <p id="cad-mensagem" style="text-align:center; margin-top:15px; font-size:14px; font-weight:bold;"></p>
+                    </form>
                 </div>
             </section>
-
+            
+            <section id="page-reports" class="page-section"><div class="empty-state"><h3>Relatórios (Em breve)</h3></div></section>
+            <section id="page-settings" class="page-section"><div class="empty-state"><h3>Configurações (Em breve)</h3></div></section>
         </main>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

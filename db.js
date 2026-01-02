@@ -1,41 +1,45 @@
 // ARQUIVO: db.js
-require('dotenv').config();
-const sql = require('mssql/msnodesqlv8'); // Biblioteca para Autenticação Windows
+const sql = require('mssql'); // MUDANÇA 1: Usamos o driver padrão, não o nativo
 
 const config = {
-    // Endereço do Servidor
-    server: process.env.DB_SERVER, 
-    // Porta (Converter para número)
-    port: parseInt(process.env.DB_PORT),
-    // Nome do Banco
-    database: process.env.DB_NAME,
+    server: '192.168.3.120',
+    port: 1141,
+    database: 'DFC',
     
-    // Isso diz para usar o driver nativo
-    driver: 'msnodesqlv8',
-    
-    // Configurações Extras
+    // MUDANÇA 2: Passamos as credenciais do Windows explicitamente
+    // Isso faz o Node simular um login, ignorando que seu PC está fora do domínio
+    user: process.env.DB_USER_WIN,      // Seu usuário de rede
+    password: process.env.DB_PASS_WIN,  // Sua senha de rede
+    domain: process.env.DB_DOMAIN,      // O domínio (ex: OBJETIVA)
+
     options: {
-        trustedConnection: true, // Isso ATIVA a Autenticação do Windows
-        encrypt: false,          // Desativa SSL (evita erro de certificado local)
+        encrypt: false, 
         trustServerCertificate: true,
-        enableArithAbort: true
-    }
+        enableArithAbort: true,
+        
+        // Importante: Desligamos o trustedConnection automático
+        // pois estamos passando user/pass manualmente
+        trustedConnection: false 
+    },
+    connectionTimeout: 20000
 };
 
 async function getConnection() {
     try {
-        console.log(`📡 Conectando ao SQL Server em ${config.server}...`);
-        
-        // Conecta usando o objeto de configuração
+        if (sql.globalConnection && sql.globalConnection.connected) {
+            return sql.globalConnection;
+        }
+
+        console.log(`📡 Conectando via NTLM (Usuário: ${config.domain}\\${config.user})...`);
         const pool = await sql.connect(config);
-        
-        console.log("✅ Conexão bem sucedida (Autenticação Windows)!");
+        sql.globalConnection = pool;
+        console.log("✅ CONEXÃO BEM SUCEDIDA!");
         return pool;
+
     } catch (err) {
-        console.error("❌ Erro ao conectar:");
+        console.error("❌ ERRO DE CONEXÃO:");
         console.error(err.message);
-        console.log("------------------------------------------------");
-        console.log("DICA: Se o erro for 'Data source name not found', verifique se o Node é x64 e o Driver ODBC 17 está instalado.");
+        console.error("DICA: Verifique se o NOME DO DOMÍNIO no .env está correto.");
         throw err;
     }
 }
