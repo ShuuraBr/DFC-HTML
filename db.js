@@ -1,47 +1,45 @@
-// ARQUIVO: db.js
-const sql = require('mssql'); // MUDANÇA 1: Usamos o driver padrão, não o nativo
+const sql = require('mssql/msnodesqlv8');
 
 const config = {
-    server: '192.168.3.120',
-    port: 1141,
-    database: 'DFC',
+    // 👇 O segredo está aqui: IP , PORTA (Use vírgula!)
+    server: '192.168.3.120,1141', 
     
-    // MUDANÇA 2: Passamos as credenciais do Windows explicitamente
-    // Isso faz o Node simular um login, ignorando que seu PC está fora do domínio
-    user: process.env.DB_USER_WIN,      // Seu usuário de rede
-    password: process.env.DB_PASS_WIN,  // Sua senha de rede
-    domain: process.env.DB_DOMAIN,      // O domínio (ex: OBJETIVA)
+    database: 'DFC',
 
+    driver: 'msnodesqlv8',
     options: {
-        encrypt: false, 
-        trustServerCertificate: true,
+        trustedConnection: true, // Tenta usar seu login do Windows
+        encrypt: false,          // Geralmente false para rede interna
         enableArithAbort: true,
-        
-        // Importante: Desligamos o trustedConnection automático
-        // pois estamos passando user/pass manualmente
-        trustedConnection: false 
-    },
-    connectionTimeout: 20000
+        connectTimeout: 15000    // Aumentei um pouco para 15s para garantir
+    }
 };
 
+let poolPromise = null;
+
 async function getConnection() {
-    try {
-        if (sql.globalConnection && sql.globalConnection.connected) {
-            return sql.globalConnection;
-        }
-
-        console.log(`📡 Conectando via NTLM (Usuário: ${config.domain}\\${config.user})...`);
-        const pool = await sql.connect(config);
-        sql.globalConnection = pool;
-        console.log("✅ CONEXÃO BEM SUCEDIDA!");
-        return pool;
-
-    } catch (err) {
-        console.error("❌ ERRO DE CONEXÃO:");
-        console.error(err.message);
-        console.error("DICA: Verifique se o NOME DO DOMÍNIO no .env está correto.");
-        throw err;
+    if (!poolPromise) {
+        console.log(`📡 Conectando em: ${config.server} (Windows Auth)...`);
+        
+        poolPromise = new sql.ConnectionPool(config)
+            .connect()
+            .then(pool => {
+                console.log('✅ Conectado ao Banco com Sucesso!');
+                return pool;
+            })
+            .catch(err => {
+                console.error('❌ FALHA DE CONEXÃO:', err.message);
+                
+                // Dica extra de erro se falhar no login
+                if(err.message.includes('Login failed')) {
+                    console.log('⚠️ DICA: Seu usuário Windows pode não ter permissão nesse servidor remoto.');
+                }
+                
+                poolPromise = null;
+                throw err;
+            });
     }
+    return poolPromise;
 }
 
 module.exports = { getConnection, sql };

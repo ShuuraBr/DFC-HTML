@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DFC - Sistema Financeiro</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 <body>
 
@@ -69,15 +72,11 @@
                 </button>
                 <button class="nav-btn" data-target="reports">
                     <i class="fa-solid fa-file-invoice-dollar"></i>
-                    <span class="tooltip">Relatórios</span>
-                </button>
-                <button class="nav-btn restricted" data-target="cadastro">
-                    <i class="fa-solid fa-user-plus"></i>
-                    <span class="tooltip">Novo Usuário</span>
+                    <span class="tooltip">Orçamento</span>
                 </button>
                 <button class="nav-btn restricted" data-target="settings">
                     <i class="fa-solid fa-gear"></i>
-                    <span class="tooltip">Config</span>
+                    <span class="tooltip">Configurações</span>
                 </button>
             </nav>
             <div class="user-profile">
@@ -89,6 +88,7 @@
         </aside>
 
         <main class="main-content">
+            
             <section id="page-dashboard" class="page-section active">
                 <header class="top-bar">
                     <div class="titles">
@@ -100,10 +100,12 @@
                              alt="Logotipo" class="header-logo" onerror="this.style.display='none'">
                     </div>
                 </header>
+                
                 <div class="kpi-grid" id="kpi-container"></div>
+                
                 <div class="dashboard-split">
                     <div class="panel table-panel">
-                        <div class="panel-head"><h3><i class="fa-solid fa-table"></i> Detalhamento</h3></div>
+                        <div class="panel-head"><h3><i class="fa-solid fa-table"></i> Demonstrativo de Fluxo de Caixa</h3></div>
                         <div class="table-wrapper">
                             <table id="finance-table">
                                 <thead>
@@ -118,51 +120,138 @@
                         </div>
                     </div>
                     <div class="panel chart-panel">
-                        <div class="panel-head"><h3><i class="fa-solid fa-chart-area"></i> Gráfico</h3></div>
+                        <div class="panel-head"><h3><i class="fa-solid fa-chart-area"></i> Gráfico Superávit/Déficit </h3></div>
                         <div class="chart-wrapper"><canvas id="mainChart"></canvas></div>
                     </div>
                 </div>
             </section>
 
-            <section id="page-cadastro" class="page-section">
-                <header class="top-bar"><h1>Administração</h1></header>
-                <div class="panel" style="max-width: 500px; margin: 20px auto; padding: 30px;">
-                    <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Usuário</h3>
-                    <p style="color: #6b7280; font-size: 13px; margin-bottom: 20px;">Senha padrão para novos usuários: <b>T2JqQDIwMjY</b>.</p>
+            <section id="page-reports" class="page-section">
+                <header class="top-bar">
+                    <div class="titles">
+                        <h1>Orçamento vs Realizado</h1>
+                        <p>Acompanhamento detalhado por Departamento</p>
+                        <p style="margin-top: 4px; font-size: 14px; color: #4b5563;">
+                            Responsável: <span id="user-info-orcamento" style="font-weight:600;">...</span>
+                        </p>
+                    </div>
+                </header>
+
+                <div class="kpi-grid" id="kpi-orcamento-container" style="margin-bottom: 20px;"></div>
+
+                <div class="panel table-panel" style="border:none; background: transparent; margin-bottom: 30px;">
+                    <div class="table-wrapper-orcamento">
+                        <table id="orcamento-table">
+                            <thead>
+                                <tr class="header-months">
+                                    <th rowspan="2" class="sticky-col">Departamento</th>
+                                    <th colspan="4">Janeiro</th>
+                                    <th colspan="4">Fevereiro</th>
+                                    <th colspan="4">Março</th>
+                                    <th colspan="4">Abril</th>
+                                    <th colspan="4">Maio</th>
+                                    <th colspan="4">Junho</th>
+                                    <th colspan="4">Julho</th>
+                                    <th colspan="4">Agosto</th>
+                                    <th colspan="4">Setembro</th>
+                                    <th colspan="4">Outubro</th>
+                                    <th colspan="4">Novembro</th>
+                                    <th colspan="4">Dezembro</th>
+                                </tr>
+                                <tr class="header-sub">
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                    <th>Orç.</th><th>Real.</th><th>Dif.</th><th>Dif.%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel chart-panel" style="margin-bottom: 40px;">
+                    <div class="panel-head">
+                        <h3><i class="fa-solid fa-chart-line"></i> Evolução Orçamentária (Ano)</h3>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="orcamentoChart"></canvas>
+                    </div>
+                </div>
+
+            </section>
+
+            <section id="page-settings" class="page-section">
+                <header class="top-bar">
+                    <h1>Configurações e Administração</h1>
+                </header>
+                
+                <div class="panel" style="max-width: 600px; margin: 0 auto; padding: 30px;">
+                    <div style="border-bottom: 1px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px;">
+                        <h3 style="font-size: 18px; color: #111827;"><i class="fa-solid fa-user-plus"></i> Gerenciamento de Usuários</h3>
+                    </div>
                     
                     <form id="form-cadastro">
                         <div class="input-wrapper">
                             <label>Nome Completo</label>
-                            <input type="text" id="cad-nome" required>
+                            <input type="text" id="cad-nome" required placeholder="Ex: João Silva">
                         </div>
+
                         <div class="input-wrapper">
                             <label>E-mail Corporativo</label>
-                            <input type="email" id="cad-email" required>
+                            <div style="display: flex; align-items: center;">
+                                <input type="text" id="cad-email-prefix" required placeholder="nome.sobrenome" 
+                                       style="border-top-right-radius: 0; border-bottom-right-radius: 0; flex: 1; min-width: 0;">
+                                <span style="background: #f3f4f6; border: 1px solid #e5e7eb; border-left: 0; padding: 10px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; color: #6b7280; font-size: 14px; font-weight: 500; white-space: nowrap;">
+                                    @objetivaatacadista.com.br
+                                </span>
+                            </div>
                         </div>
                         
-                        <div class="input-wrapper">
-                            <label>Departamento</label>
-                            <select id="cad-departamento" required>
-                                <option value="">Carregando...</option>
-                            </select>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div class="input-wrapper">
+                                <label>Departamento</label>
+                                <select id="cad-departamento" required>
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <div class="input-wrapper">
+                                <label>Tipo Acesso</label>
+                                <select id="cad-role">
+                                    <option value="user">Usuário Comum</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="input-wrapper">
+                                <label>Nível</label>
+                                <select id="cad-nivel" required>
+                                    <option value="1">Nível 1</option>
+                                    <option value="2">Nível 2</option>
+                                    <option value="3">Nível 3</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="input-wrapper">
-                            <label>Nível de Acesso</label>
-                            <select id="cad-role">
-                                <option value="user">Usuário Comum</option>
-                                <option value="admin">Administrador</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-primary" style="margin-top:10px;">Salvar Usuário</button>
+
+                        <button type="submit" class="btn-primary" style="margin-top:10px;">
+                            <i class="fa-solid fa-check"></i> Salvar Usuário
+                        </button>
                         <p id="cad-mensagem" style="text-align:center; margin-top:15px; font-size:14px; font-weight:bold;"></p>
                     </form>
                 </div>
             </section>
-            
-            <section id="page-reports" class="page-section"><div class="empty-state"><h3>Relatórios (Em breve)</h3></div></section>
-            <section id="page-settings" class="page-section"><div class="empty-state"><h3>Configurações (Em breve)</h3></div></section>
         </main>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
