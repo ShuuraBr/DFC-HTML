@@ -302,4 +302,4 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Rodando em http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Rodando em http://192.168.3.67:${PORT}`));
